@@ -331,7 +331,6 @@
     }
 }
     async function submitAuth(isLogin) {
-    // Note: ensure these ID names match your actual HTML input IDs
     const userField = document.querySelector('input[placeholder="Username"]') || document.getElementById('auth-username');
     const passField = document.querySelector('input[type="password"]') || document.getElementById('auth-password');
     
@@ -339,7 +338,7 @@
     const password = passField ? passField.value : "";
 
     if (!username || !password) {
-        return alert("Username and password are required.");
+        return showNotification("Username and password are required.", true);
     }
 
     const endpoint = isLogin === 'login' ? "/api/login" : "/api/register";
@@ -356,13 +355,14 @@
         const data = await response.json();
         
         if (data.success) {
-            alert(data.message);
-            window.location.reload(); // Refreshes to load the new account state
+            showNotification(data.message);
+            closeModal('auth-modal');
+            setTimeout(() => window.location.reload(), 1500); 
         } else {
-            alert(data.message); // Shows "Username already taken" or "Invalid credentials"
+            showNotification(data.message, true); 
         }
     } catch (error) {
-        alert("Server error. Please try again later.");
+        showNotification("Server error. Please try again later.", true);
     }
 }
     async function triggerLogout() {
