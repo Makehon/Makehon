@@ -330,6 +330,41 @@
         showNotification("Network error. Please try again.", true);
     }
 }
+    async function submitAuth(isLogin) {
+    // Note: ensure these ID names match your actual HTML input IDs
+    const userField = document.querySelector('input[placeholder="Username"]') || document.getElementById('auth-username');
+    const passField = document.querySelector('input[type="password"]') || document.getElementById('auth-password');
+    
+    const username = userField ? userField.value : "";
+    const password = passField ? passField.value : "";
+
+    if (!username || !password) {
+        return alert("Username and password are required.");
+    }
+
+    const endpoint = isLogin ? "/api/login" : "/api/register";
+
+    try {
+        const response = await fetch(endpoint, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ username: username, password: password })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            alert(data.message);
+            window.location.reload(); // Refreshes to load the new account state
+        } else {
+            alert(data.message); // Shows "Username already taken" or "Invalid credentials"
+        }
+    } catch (error) {
+        alert("Server error. Please try again later.");
+    }
+}
     async function triggerLogout() {
       try { await fetch('/api/logout', { method: 'POST' }); showNotification("Logged out safely."); window.location.reload(); }
       catch (error) { showNotification("Error logging out.", true); }
