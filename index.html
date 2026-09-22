@@ -342,7 +342,7 @@
         return alert("Username and password are required.");
     }
 
-    const endpoint = isLogin ? "/api/login" : "/api/register";
+    const endpoint = isLogin === 'login' ? "/api/login" : "/api/register";
 
     try {
         const response = await fetch(endpoint, {
