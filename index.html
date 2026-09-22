@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Makehon</title>
+
+  <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
+
+  <style>
+    :root { --bg: #121722; --panel-bg: #1e222d; --border: #2a2e39; --text: #d1d4dc; --accent: #2962ff; --green: #089981; --red: #f23645; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    body { background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+    header { background: var(--panel-bg); border-bottom: 1px solid var(--border); padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; }
+    .header-left { display: flex; align-items: center; gap: 16px; }
+    .title-group { display: flex; align-items: center; gap: 10px; }
+    .nav-link { background: transparent; border: none; color: #787b86; cursor: pointer; font-size: 13px; padding: 4px 8px; border-radius: 4px; transition: 0.2s; }
+    .nav-link:hover { color: white; background: #2a2e39; }
+
+    .top-search-bar { background: #131722; border: 1px solid var(--border); color: white; padding: 8px 12px; border-radius: 4px; font-size: 14px; width: 180px; outline: none; }
+    .top-search-bar:focus { border-color: var(--accent); }
+
+    .header-right { display: flex; align-items: center; gap: 20px; font-size: 14px; }
+    .highlight { color: #fff; font-weight: bold; }
+    .badge { background: #363c4e; padding: 4px 8px; border-radius: 4px; font-size: 12px; }
+
+    .btn-login { background: transparent; color: var(--accent); border: 1px solid var(--accent); padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 12px; transition: 0.2s; }
+    .btn-login:hover { background: rgba(41, 98, 255, 0.1); }
+    .btn-logout { background: transparent; color: #787b86; border: 1px solid #787b86; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 12px; transition: 0.2s; }
+    .btn-logout:hover { background: rgba(242, 54, 69, 0.1); color: var(--red); border-color: var(--red); }
+    .btn-reset { background: #2a2e39; color: var(--text); border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 12px; margin-left: 8px; transition: 0.2s; }
+    .btn-reset:hover { background: var(--red); color: white; }
+
+    .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); display: flex; justify-content: center; align-items: center; z-index: 1000; opacity: 0; pointer-events: none; transition: 0.2s; }
+    .modal-overlay.active { opacity: 1; pointer-events: auto; }
+    .modal-content { background: var(--panel-bg); border: 1px solid var(--border); padding: 24px; border-radius: 8px; width: 360px; display: flex; flex-direction: column; gap: 16px; transform: translateY(-20px); transition: 0.2s; }
+    .modal-overlay.active .modal-content { transform: translateY(0); }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; font-size: 18px; font-weight: bold; }
+    .modal-close { background: transparent; border: none; color: #787b86; cursor: pointer; font-size: 20px; }
+    .modal-close:hover { color: var(--red); }
+    .auth-buttons { display: flex; gap: 10px; margin-top: 10px; }
+    .auth-buttons button { flex: 1; padding: 10px; border-radius: 4px; cursor: pointer; font-weight: bold; border: none; }
+    .btn-register-action { background: var(--green); color: white; }
+    .btn-login-action { background: var(--accent); color: white; }
+    .btn-danger-action { background: var(--red); color: white; }
+    .btn-cancel-action { background: transparent; border: 1px solid #787b86; color: #787b86; }
+
+    .workspace { display: flex; flex: 1; min-height: 0; }
+    .chart-section { flex: 3; display: flex; flex-direction: column; border-right: 1px solid var(--border); padding: 16px; }
+    .chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+
+    .timeframe-bar { display: flex; gap: 4px; background: #131722; padding: 4px; border-radius: 4px; border: 1px solid var(--border); }
+    .timeframe-bar button { background: transparent; color: var(--text); border: none; padding: 4px 12px; cursor: pointer; border-radius: 4px; font-size: 13px; }
+    .timeframe-bar button:hover { background: #2a2e39; }
+    .timeframe-bar button.active { background: var(--accent); color: white; }
+    #chart-container { flex: 1; width: 100%; position: relative; }
+
+    .sidebar { flex: 1; min-width: 300px; max-width: 350px; background: var(--panel-bg); display: flex; flex-direction: column; overflow-y: auto; }
+    .sidebar-view { padding: 20px; display: none; flex-direction: column; gap: 16px; height: 100%; }
+    .sidebar-view.active { display: flex; }
+
+    .btn-open-trade { background: var(--accent); color: white; border: none; padding: 14px; border-radius: 4px; font-weight: bold; font-size: 16px; cursor: pointer; }
+    .btn-open-trade:hover { background: #1e53e5; }
+    .ad-placeholder-sidebar { flex: 1; background: #171b26; display: flex; align-items: center; justify-content: center; color: #434651; font-size: 12px; border: 1px dashed var(--border); border-radius: 6px; min-height: 250px; margin-top: 10px; }
+
+    .trade-header { display: flex; justify-content: space-between; align-items: center; font-weight: bold; font-size: 16px; border-bottom: 1px solid var(--border); padding-bottom: 12px; }
+    .btn-close-trade { background: transparent; color: #787b86; border: none; font-size: 20px; cursor: pointer; }
+    .btn-close-trade:hover { color: var(--red); }
+
+    .trade-toggle { display: flex; gap: 8px; }
+    .trade-toggle button { flex: 1; padding: 10px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; color: white; }
+    .btn-buy { background: var(--green); }
+    .btn-sell { background: var(--red); opacity: 0.5; }
+
+    .input-group { display: flex; flex-direction: column; gap: 6px; }
+    .input-group label { font-size: 12px; color: #787b86; }
+    .input-group input, .input-group select, .input-group textarea { background: #131722; border: 1px solid var(--border); color: white; padding: 10px; border-radius: 4px; font-size: 14px; outline: none; }
+    .input-group input:focus, .input-group select:focus, .input-group textarea:focus { border-color: var(--accent); }
+    .btn-submit { background: var(--accent); color: white; border: none; padding: 12px; border-radius: 4px; font-weight: bold; cursor: pointer; margin-top: 6px; }
+    .hidden { display: none !important; }
+
+    .currency-input { position: relative; display: flex; align-items: center; }
+    .currency-input span { position: absolute; left: 10px; color: #787b86; font-size: 14px; }
+    .currency-input input { padding-left: 24px !important; width: 100%; }
+
+    .order-summary { display: flex; justify-content: space-between; font-size: 12px; color: #787b86; padding: 6px 0; border-top: 1px dashed var(--border); }
+
+    .dock { height: 240px; background: var(--panel-bg); border-top: 1px solid var(--border); display: flex; flex-direction: column; }
+    .dock-tabs { display: flex; border-bottom: 1px solid var(--border); padding: 0 16px; }
+    .tab { padding: 10px 16px; cursor: pointer; border-bottom: 2px solid transparent; font-size: 13px; }
+    .tab.active { border-color: var(--accent); color: white; font-weight: bold; }
+    .dock-content { flex: 1; overflow-y: auto; }
+    .dock-table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; }
+    .dock-table th { padding: 10px 16px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--panel-bg); z-index: 1; color: #787b86; font-weight: normal; }
+    .dock-table td { padding: 10px 16px; border-bottom: 1px solid var(--border); }
+
+    /* NEW: Personal Stats Banner */
+    #history-stats { display: flex; gap: 24px; padding: 12px 16px; background: #131722; border-bottom: 1px solid var(--border); font-size: 13px; color: #787b86; }
+
+    #toast-container { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
+    .toast { background: var(--accent); color: white; padding: 14px 28px; border-radius: 6px; font-weight: bold; font-size: 14px; box-shadow: 0 4px 15px rgba(0,0,0,0.4); opacity: 0; transform: translateY(-20px); transition: all 0.3s ease-in-out; }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .toast.error { background: var(--red); }
+  </style>
+</head>
+<body>
+
+  <!-- Modals -->
+  <div class="modal-overlay" id="auth-modal">
+    <div class="modal-content">
+      <div class="modal-header"><span>Account Access</span><button class="modal-close" onclick="closeModal('auth-modal')">&times;</button></div>
+      <div class="input-group"><label>Username</label><input type="text" id="auth-username" placeholder="Choose a username" /></div>
+      <div class="input-group"><label>Password</label><input type="password" id="auth-password" placeholder="Enter your password" /></div>
+      <div class="auth-buttons"><button class="btn-register-action" onclick="submitAuth('register')">Claim Account</button><button class="btn-login-action" onclick="submitAuth('login')">Login</button></div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="reset-modal">
+    <div class="modal-content">
+      <div class="modal-header"><span style="color: var(--red);">Reset Account?</span><button class="modal-close" onclick="closeModal('reset-modal')">&times;</button></div>
+      <p style="font-size: 14px; color: #d1d4dc;">Are you sure you want to completely reset your account? This will close all open positions, pending orders, and permanently delete your trade history.</p>
+      <div class="auth-buttons"><button class="btn-cancel-action" onclick="closeModal('reset-modal')">Cancel</button><button class="btn-danger-action" onclick="submitReset()">Yes, Reset</button></div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="close-modal">
+    <div class="modal-content">
+      <div class="modal-header"><span>Close Position</span><button class="modal-close" onclick="closeModal('close-modal')">&times;</button></div>
+      <input type="hidden" id="close-position-id" />
+      <div class="input-group">
+        <label>Limit Close Price ($) <span style="font-weight:normal; color:#5d606b;">- Leave blank for Market Close</span></label>
+        <div class="currency-input"><span>$</span><input type="number" id="close-target-price" placeholder="Execute at Market Price" /></div>
+      </div>
+      <div class="auth-buttons"><button class="btn-login-action" onclick="submitClosePosition()">Execute Close</button></div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="contact-modal">
+    <div class="modal-content">
+      <div class="modal-header"><span>Contact & Feedback</span><button class="modal-close" onclick="closeModal('contact-modal')">&times;</button></div>
+      <div class="input-group"><label>Your Email</label><input type="email" id="contact-email" placeholder="trader@example.com" /></div>
+      <div class="input-group"><label>Feedback or Feature Request</label><textarea id="contact-message" rows="4" placeholder="Tell us what features you want next..."></textarea></div>
+      <div class="auth-buttons"><button class="btn-login-action" onclick="submitContact()">Send Feedback</button></div>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+
+  <header>
+    <div class="header-left">
+      <div class="title-group"><span class="highlight" style="font-size: 18px;">Makehon</span><span class="badge" id="nav-badge">Guest Mode</span></div>
+      <button class="nav-link" onclick="openScreenerNotice()">Screener</button>
+      <button class="nav-link" onclick="openContactModal()">Contact</button>
+      <input type="text" class="top-search-bar" id="top-search" placeholder="Search Ticker" value="NVDA" />
+    </div>
+    <div class="header-right">
+      <div id="auth-controls"><button class="btn-login" onclick="document.getElementById('auth-modal').classList.add('active')">Login / Register</button></div>
+      <span>Cash: <span class="highlight" id="nav-cash">...</span> <button class="btn-reset" onclick="document.getElementById('reset-modal').classList.add('active')" title="Reset to default balance">&#8635; Reset</button></span>
+      <span>Margin Locked: <span class="highlight" id="nav-margin">...</span></span>
+      <span>Total Equity: <span class="highlight" id="nav-equity" style="color: var(--green);">...</span></span>
+    </div>
+  </header>
+
+  <div class="workspace">
+    <div class="chart-section">
+      <div class="chart-header">
+        <div><h2 class="highlight" id="chart-title">Loading...</h2><span style="font-size: 20px; font-weight: bold; color: var(--green);" id="chart-price">...</span></div>
+        <div class="timeframe-bar">
+          <button onclick="setTimeframe('1m', this)">1m</button>
+          <button onclick="setTimeframe('5m', this)">5m</button>
+          <button class="active" onclick="setTimeframe('15m', this)">15m</button>
+          <button onclick="setTimeframe('1h', this)">1H</button>
+          <button onclick="setTimeframe('1d', this)">1D</button>
+        </div>
+      </div>
+      <div id="chart-container"></div>
+    </div>
+
+    <div class="sidebar">
+      <div id="view-ad" class="sidebar-view active"><button class="btn-open-trade" onclick="toggleSidebar()">+ New Trade</button><div class="ad-placeholder-sidebar">Ad Slot (300x250)</div></div>
+      <div id="view-trade" class="sidebar-view">
+        <div class="trade-header"><span>Order Ticket</span><button class="btn-close-trade" onclick="toggleSidebar()">&times;</button></div>
+        <div class="trade-toggle"><button class="btn-buy" id="btn-buy" onclick="setAction('BUY')">BUY / LONG</button><button class="btn-sell" id="btn-sell" onclick="setAction('SELL')">SELL / SHORT</button></div>
+        <div class="input-group"><label>Ticker Symbol</label><input type="text" id="input-ticker" value="NVDA" /></div>
+        <div class="input-group"><label>Quantity (Whole Shares)</label><input type="number" id="input-shares" value="10" min="1" step="1" oninput="calculateOrderCost()" /></div>
+        <hr style="border: 0; border-top: 1px solid var(--border); margin: 4px 0;">
+
+        <div class="input-group">
+          <label>Order Type</label>
+          <select id="input-order-type" onchange="toggleLimitInput()">
+            <option value="market" selected>Market</option>
+            <option value="limit">Limit</option>
+            <option value="stop">Stop</option>
+            <option value="stop_limit">Stop Limit</option>
+            <option value="trailing_stop">Trailing Stop</option>
+          </select>
+        </div>
+
+        <div class="input-group hidden" id="wrapper-entry">
+          <label>Target Entry Price</label>
+          <div class="currency-input"><span>$</span><input type="number" id="input-entry" placeholder="e.g. 220.00" oninput="calculateOrderCost()" /></div>
+        </div>
+        <div class="input-group">
+          <label>Take Profit</label>
+          <div class="currency-input"><span>$</span><input type="number" id="input-tp" placeholder="Optional Auto-Sell Target" /></div>
+        </div>
+        <div class="input-group">
+          <label>Stop Loss</label>
+          <div class="currency-input"><span>$</span><input type="number" id="input-sl" placeholder="Optional Auto-Sell Target" /></div>
+        </div>
+        <div class="input-group">
+          <label>Leverage</label>
+          <select id="input-leverage" onchange="calculateOrderCost()">
+            <option value="1">1x (No Margin)</option>
+            <option value="5" selected>5x Leverage</option>
+          </select>
+        </div>
+
+        <div class="order-summary">
+          <span>Est. Margin Required:</span>
+          <span class="highlight" id="est-margin-cost">$0.00</span>
+        </div>
+
+        <button class="btn-submit" onclick="submitOrder()">Submit Order</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="dock">
+    <div class="dock-tabs">
+      <div class="tab active" id="tab-open" onclick="switchTab('open')">Open Positions</div>
+      <div class="tab" id="tab-pending" onclick="switchTab('pending')">Pending Orders</div>
+      <div class="tab" id="tab-history" onclick="switchTab('history')">Trade History</div>
+      <div class="tab" id="tab-leaderboard" onclick="switchTab('leaderboard')">Leaderboard (Month)</div>
+    </div>
+
+    <div class="dock-content">
+      <table class="dock-table" id="table-open">
+        <thead><tr><th>Ticker</th><th>Shares</th><th>Entry Price</th><th>Current Price</th><th>Leverage</th><th>Margin Locked</th><th>Unrealized PnL</th><th>Action</th></tr></thead>
+        <tbody id="positions-tbody"></tbody>
+      </table>
+
+      <table class="dock-table hidden" id="table-pending">
+        <thead><tr><th>Ticker</th><th>Type</th><th>Shares</th><th>Target Price</th><th>Leverage</th><th>Margin Locked</th><th>Action</th></tr></thead>
+        <tbody id="pending-tbody"></tbody>
+      </table>
+
+      <div id="wrapper-history" class="hidden">
+        <!-- UPGRADE: Personal Stats Ribbon -->
+        <div id="history-stats">
+          <div><span>Total Trades:</span> <span class="highlight" id="stat-trades">0</span></div>
+          <div><span>Win Rate:</span> <span class="highlight" id="stat-winrate">0.0%</span></div>
+          <div><span>Net Realized Profit:</span> <span class="highlight" id="stat-netprofit">$0.00</span></div>
+        </div>
+        <table class="dock-table" id="table-history">
+          <thead><tr><th>Date / Time</th><th>Ticker</th><th>Direction</th><th>Shares</th><th>Entry Price</th><th>Close Price</th><th>Realized PnL</th></tr></thead>
+          <tbody id="history-tbody"></tbody>
+        </table>
+      </div>
+
+      <table class="dock-table hidden" id="table-leaderboard">
+        <thead><tr><th>Rank</th><th>Trader</th><th>Total Trades</th><th>Win Rate</th><th>Realized Profit</th></tr></thead>
+        <tbody id="leaderboard-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    let currentLiveQuote = 224.00;
+
+    function showNotification(message, isError = false) {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = 'toast';
+      if (isError) toast.classList.add('error');
+      toast.innerText = message;
+      container.appendChild(toast);
+      setTimeout(() => toast.classList.add('show'), 10);
+      setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 300); }, 3000);
+    }
+
+    function closeModal(modalId) { document.getElementById(modalId).classList.remove('active'); }
+    function openContactModal() { document.getElementById('contact-modal').classList.add('active'); }
+    function openScreenerNotice() { showNotification("Market Screener module planned for next major release."); }
+
+    function submitContact() {
+      const msg = document.getElementById('contact-message').value;
+      if (!msg) return showNotification("Please enter a message.", true);
+      showNotification("Thank you for your feedback! Received.");
+      closeModal('contact-modal');
+      document.getElementById('contact-message').value = '';
+    }
+
+    async function submitAuth(action) {
+      const user = document.getElementById('auth-username').value.trim();
+      const pass = document.getElementById('auth-password').value;
+      if(!user || !pass) return showNotification("Username and password required.", true);
+      try {
+        const response = await fetch(`/api/${action}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: user, password: pass }) });
+        const result = await response.json();
+        if(result.success) { showNotification(result.message); closeModal('auth-modal'); fetchAllData(); }
+        else { showNotification(result.message, true); }
+      } catch (error) { showNotification("Server error.", true); }
+    }
+
+    async function triggerLogout() {
+      try { await fetch('/api/logout', { method: 'POST' }); showNotification("Logged out safely."); window.location.reload(); }
+      catch (error) { showNotification("Error logging out.", true); }
+    }
+
+    let currentAction = "BUY";
+    function setAction(action) {
+      currentAction = action;
+      document.getElementById('btn-buy').style.opacity = action === 'BUY' ? "1" : "0.5";
+      document.getElementById('btn-sell').style.opacity = action === 'SELL' ? "1" : "0.5";
+    }
+
+    function toggleSidebar() {
+      const adView = document.getElementById('view-ad');
+      const tradeView = document.getElementById('view-trade');
+      if (adView.classList.contains('active')) { adView.classList.remove('active'); tradeView.classList.add('active'); calculateOrderCost(); }
+      else { tradeView.classList.remove('active'); adView.classList.add('active'); }
+    }
+
+    function toggleLimitInput() {
+      const orderType = document.getElementById('input-order-type').value;
+      const entryWrapper = document.getElementById('wrapper-entry');
+      if (orderType !== 'market') entryWrapper.classList.remove('hidden');
+      else { entryWrapper.classList.add('hidden'); document.getElementById('input-entry').value = ''; }
+      calculateOrderCost();
+    }
+
+    function calculateOrderCost() {
+      const shares = parseInt(document.getElementById('input-shares').value) || 0;
+      const leverage = parseInt(document.getElementById('input-leverage').value) || 1;
+      const limitEntry = parseFloat(document.getElementById('input-entry').value);
+      const executionPrice = (!isNaN(limitEntry) && limitEntry > 0) ? limitEntry : currentLiveQuote;
+      const totalCost = (shares * executionPrice) / leverage;
+      document.getElementById('est-margin-cost').innerText = `$${totalCost.toFixed(2)}`;
+    }
+
+    function switchTab(tabName) {
+      document.getElementById('tab-open').classList.remove('active');
+      document.getElementById('tab-pending').classList.remove('active');
+      document.getElementById('tab-history').classList.remove('active');
+      document.getElementById('tab-leaderboard').classList.remove('active');
+
+      document.getElementById('table-open').classList.add('hidden');
+      document.getElementById('table-pending').classList.add('hidden');
+      document.getElementById('wrapper-history').classList.add('hidden');
+      document.getElementById('table-leaderboard').classList.add('hidden');
+
+      document.getElementById(`tab-${tabName}`).classList.add('active');
+
+      if(tabName === 'history') document.getElementById('wrapper-history').classList.remove('hidden');
+      else document.getElementById(`table-${tabName}`).classList.remove('hidden');
+
+      if(tabName === 'open') fetchPositions();
+      else if(tabName === 'pending') fetchPending();
+      else if(tabName === 'history') fetchHistory();
+      else fetchLeaderboard();
+    }
+
+    let chart, candlestickSeries, lastCandle = null, currentInterval = '15m';
+
+    function initChart() {
+      const container = document.getElementById('chart-container');
+      chart = LightweightCharts.createChart(container, {
+        layout: { background: { type: 'solid', color: '#131722' }, textColor: '#d1d4dc' },
+        grid: { vertLines: { color: '#2a2e39' }, horzLines: { color: '#2a2e39' } },
+        timeScale: { timeVisible: true, secondsVisible: false },
+        crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+        width: container.clientWidth, height: container.clientHeight
+      });
+      candlestickSeries = chart.addCandlestickSeries({ upColor: '#089981', downColor: '#f23645', borderVisible: false, wickUpColor: '#089981', wickDownColor: '#f23645' });
+      window.addEventListener('resize', () => { chart.resize(container.clientWidth, container.clientHeight); });
+    }
+
+    function setTimeframe(interval, btnElement) {
+      currentInterval = interval;
+      document.querySelectorAll('.timeframe-bar button').forEach(btn => btn.classList.remove('active'));
+      btnElement.classList.add('active');
+      loadChartData(document.getElementById('top-search').value.trim() || 'NVDA');
+    }
+
+    async function loadChartData(ticker) {
+      try {
+        document.getElementById('chart-title').innerText = "Loading data...";
+        const response = await fetch(`/api/chart/${ticker}?interval=${currentInterval}`);
+        const result = await response.json();
+        if (result.success) {
+          candlestickSeries.setData(result.data);
+          lastCandle = result.data[result.data.length - 1];
+          currentLiveQuote = result.current_price;
+          calculateOrderCost();
+
+          document.getElementById('chart-title').innerHTML = `${ticker.toUpperCase()} &bull; ${result.company_name}`;
+          document.getElementById('chart-price').innerText = `$${result.current_price.toFixed(2)}`;
+          document.getElementById('chart-price').style.color = lastCandle.close >= lastCandle.open ? "var(--green)" : "var(--red)";
+          document.getElementById('input-ticker').value = ticker.toUpperCase();
+          document.getElementById('top-search').value = ticker.toUpperCase();
+        } else {
+          showNotification(result.message, true);
+          document.getElementById('chart-title').innerText = "Data unavailable";
+          lastCandle = null;
+        }
+      } catch (error) {}
+    }
+
+    document.getElementById('input-ticker').addEventListener('change', (e) => loadChartData(e.target.value.trim()));
+    document.getElementById('top-search').addEventListener('change', (e) => loadChartData(e.target.value.trim()));
+
+    function fetchAllData() { fetchAccountStats(); fetchPositions(); fetchPending(); fetchHistory(); }
+
+    async function fetchAccountStats() {
+      try {
+        const response = await fetch('/api/account');
+        const data = await response.json();
+        if (data.success) {
+          const equity = data.cash + data.margin_used;
+          const formatter = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
+          document.getElementById('nav-cash').innerText = formatter.format(data.cash);
+          document.getElementById('nav-margin').innerText = formatter.format(data.margin_used);
+          document.getElementById('nav-equity').innerText = formatter.format(equity);
+          document.getElementById('nav-equity').style.color = equity >= 100000 ? "var(--green)" : "var(--red)";
+          if (!data.is_guest) {
+            document.getElementById('nav-badge').innerText = `Trader: ${data.username}`;
+            document.getElementById('auth-controls').innerHTML = `<button class="btn-logout" onclick="triggerLogout()">Logout</button>`;
+          }
+        }
+      } catch (error) {}
+    }
+
+    async function fetchPositions() {
+      try {
+        const response = await fetch('/api/positions');
+        const data = await response.json();
+        const tbody = document.getElementById('positions-tbody');
+        tbody.innerHTML = '';
+        if (data.success && data.positions.length > 0) {
+          data.positions.forEach(pos => {
+            const tr = document.createElement('tr');
+            const currentPrice = pos.live_price;
+            let pnl = pos.side === 'BUY' ? (currentPrice - pos.entry_price) * pos.shares : (pos.entry_price - currentPrice) * pos.shares;
+            let sideBadge = pos.side === 'BUY' ? '<span style="color:#089981; border:1px solid #089981; background:rgba(8,153,129,0.1); padding:2px 6px; border-radius:4px; font-size:10px; margin-left:8px;">LONG</span>' : '<span style="color:#f23645; border:1px solid #f23645; background:rgba(242,54,69,0.1); padding:2px 6px; border-radius:4px; font-size:10px; margin-left:8px;">SHORT</span>';
+            const pnlColor = pnl >= 0 ? 'var(--green)' : 'var(--red)';
+            const tpText = pos.take_profit ? `TP: $${pos.take_profit.toFixed(2)}` : 'TP: None';
+            const slText = pos.stop_loss ? `SL: $${pos.stop_loss.toFixed(2)}` : 'SL: None';
+
+            tr.innerHTML = `
+              <td><strong>${pos.ticker}</strong> ${sideBadge}</td>
+              <td>${pos.shares}</td>
+              <td>$${pos.entry_price.toFixed(2)}<br><span style="font-size: 10px; color: #787b86;">${tpText} | ${slText}</span></td>
+              <td>$${currentPrice.toFixed(2)}</td>
+              <td>${pos.leverage}x</td>
+              <td>$${pos.margin_locked.toFixed(2)}</td>
+              <td style="color: ${pnlColor}; font-weight: bold;">${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)}</td>
+              <td><button onclick="openCloseModal(${pos.id})" style="background: transparent; border: 1px solid #f23645; color: #f23645; border-radius: 4px; padding: 4px 8px; cursor: pointer;">Close</button></td>
+            `;
+            tbody.appendChild(tr);
+          });
+        } else { tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: #787b86; padding: 16px;">No active positions.</td></tr>'; }
+      } catch (error) {}
+    }
+
+    async function fetchPending() {
+      try {
+        const response = await fetch('/api/pending');
+        const data = await response.json();
+        const tbody = document.getElementById('pending-tbody');
+        tbody.innerHTML = '';
+        if (data.success && data.pending.length > 0) {
+          data.pending.forEach(order => {
+            const tr = document.createElement('tr');
+            let typeBadge = order.side === 'BUY' ? '<span style="color:#089981; margin-left:8px; font-weight:bold;">BUY</span>' : '<span style="color:#f23645; margin-left:8px; font-weight:bold;">SELL</span>';
+            tr.innerHTML = `
+              <td><strong>${order.ticker}</strong> ${typeBadge}</td>
+              <td style="text-transform: capitalize;">${order.order_type.replace('_', ' ')}</td>
+              <td>${order.shares}</td>
+              <td>$${order.target_price.toFixed(2)}</td>
+              <td>${order.leverage}x</td>
+              <td>$${order.margin_locked.toFixed(2)}</td>
+              <td><button onclick="cancelPending(${order.id})" style="background: transparent; border: 1px solid #787b86; color: #787b86; border-radius: 4px; padding: 4px 8px; cursor: pointer;">Cancel</button></td>
+            `;
+            tbody.appendChild(tr);
+          });
+        } else { tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #787b86; padding: 16px;">No pending orders.</td></tr>'; }
+      } catch (error) {}
+    }
+
+    async function cancelPending(id) {
+      try {
+        const response = await fetch('/api/cancel_pending', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ order_id: id }) });
+        const result = await response.json();
+        if(result.success) { showNotification(result.message); fetchAllData(); }
+        else { showNotification(result.message, true); }
+      } catch (error) { showNotification("Failed to cancel order.", true); }
+    }
+
+    async function fetchHistory() {
+      try {
+        const response = await fetch('/api/history');
+        const data = await response.json();
+        const tbody = document.getElementById('history-tbody');
+        tbody.innerHTML = '';
+
+        let wins = 0;
+        let netProfit = 0;
+
+        if (data.success && data.history.length > 0) {
+          data.history.forEach(trade => {
+            if (trade.pnl > 0) wins++;
+            netProfit += trade.pnl;
+
+            const tr = document.createElement('tr');
+            const pnlColor = trade.pnl >= 0 ? 'var(--green)' : 'var(--red)';
+            tr.innerHTML = `
+              <td style="color: #787b86;">${new Date(trade.closed_at).toLocaleString()}</td>
+              <td><strong>${trade.ticker}</strong></td>
+              <td>${trade.side === 'BUY' ? 'LONG' : 'SHORT'}</td>
+              <td>${trade.shares}</td>
+              <td>$${trade.entry_price.toFixed(2)}</td>
+              <td>$${trade.close_price.toFixed(2)}</td>
+              <td style="color: ${pnlColor}; font-weight: bold;">${trade.pnl >= 0 ? '+' : ''}$${trade.pnl.toFixed(2)}</td>
+            `;
+            tbody.appendChild(tr);
+          });
+        } else {
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #787b86; padding: 16px;">No trading history yet.</td></tr>';
+        }
+
+        // UPGRADE: Update Personal Stats Ribbon
+        document.getElementById('stat-trades').innerText = data.history ? data.history.length : 0;
+        document.getElementById('stat-winrate').innerText = data.history && data.history.length > 0 ? ((wins / data.history.length) * 100).toFixed(1) + '%' : '0.0%';
+        document.getElementById('stat-netprofit').innerText = (netProfit >= 0 ? '+$' : '-$') + Math.abs(netProfit).toFixed(2);
+        document.getElementById('stat-netprofit').style.color = netProfit >= 0 ? 'var(--green)' : 'var(--red)';
+
+      } catch (error) {}
+    }
+
+    async function fetchLeaderboard() {
+      try {
+        const response = await fetch('/api/leaderboard?period=month');
+        const data = await response.json();
+        const tbody = document.getElementById('leaderboard-tbody');
+        tbody.innerHTML = '';
+
+        if (data.success && data.leaders.length > 0) {
+          data.leaders.forEach((leader, idx) => {
+            const tr = document.createElement('tr');
+            const pnlColor = leader.total_pnl >= 0 ? 'var(--green)' : 'var(--red)';
+            const rankBadge = idx === 0 ? '🥇 1' : idx === 1 ? '🥈 2' : idx === 2 ? '🥉 3' : `#${idx + 1}`;
+
+            tr.innerHTML = `
+              <td><strong>${rankBadge}</strong></td>
+              <td class="highlight">${leader.username}</td>
+              <td>${leader.total_trades}</td>
+              <td>${leader.win_rate}%</td>
+              <td style="color: ${pnlColor}; font-weight: bold;">${leader.total_pnl >= 0 ? '+' : ''}$${leader.total_pnl.toFixed(2)}</td>
+            `;
+            tbody.appendChild(tr);
+          });
+        } else {
+          tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #787b86; padding: 16px;">No ranked traders this month yet.</td></tr>';
+        }
+      } catch (error) {}
+    }
+
+    function openCloseModal(id) {
+      document.getElementById('close-position-id').value = id;
+      document.getElementById('close-target-price').value = '';
+      document.getElementById('close-modal').classList.add('active');
+    }
+
+    async function submitClosePosition() {
+      const id = document.getElementById('close-position-id').value;
+      const targetPrice = document.getElementById('close-target-price').value;
+      const payload = { position_id: id };
+      if (targetPrice) payload.target_price = parseFloat(targetPrice);
+
+      try {
+        const response = await fetch('/api/close', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        const result = await response.json();
+        if(result.success) { showNotification(result.message); closeModal('close-modal'); fetchAllData(); }
+        else { showNotification(result.message, true); }
+      } catch (error) { showNotification("Failed to close position.", true); }
+    }
+
+    async function submitOrder() {
+      const payload = {
+        ticker: document.getElementById('input-ticker').value, action: currentAction, shares: parseInt(document.getElementById('input-shares').value), leverage: parseInt(document.getElementById('input-leverage').value),
+        order_type: document.getElementById('input-order-type').value, entry_price: document.getElementById('input-entry').value ? parseFloat(document.getElementById('input-entry').value) : null,
+        take_profit: document.getElementById('input-tp').value ? parseFloat(document.getElementById('input-tp').value) : null, stop_loss: document.getElementById('input-sl').value ? parseFloat(document.getElementById('input-sl').value) : null
+      };
+
+      try {
+        const response = await fetch('/api/order', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        const result = await response.json();
+        if(result.success) {
+          showNotification(result.message); fetchAllData();
+          document.getElementById('input-entry').value = ''; document.getElementById('input-tp').value = ''; document.getElementById('input-sl').value = '';
+          calculateOrderCost();
+        } else { showNotification(result.message, true); }
+      } catch (error) { showNotification("Failed to communicate with the server.", true); }
+    }
+
+    async function submitReset() {
+      try {
+        const response = await fetch('/api/reset', { method: 'POST' });
+        const result = await response.json();
+        if(result.success) { showNotification(result.message); closeModal('reset-modal'); fetchAllData(); }
+        else { showNotification(result.message, true); }
+      } catch (error) { showNotification("Failed to communicate with the server.", true); }
+    }
+
+    setInterval(async () => {
+      const ticker = document.getElementById('top-search').value.trim();
+      if (!ticker || !lastCandle) return;
+      try {
+        const response = await fetch(`/api/quote/${ticker}`);
+        const data = await response.json();
+        if (data.success) {
+          const livePrice = data.price;
+          currentLiveQuote = livePrice;
+          calculateOrderCost();
+
+          const priceEl = document.getElementById('chart-price');
+          priceEl.innerText = `$${livePrice.toFixed(2)}`;
+          priceEl.style.color = livePrice >= lastCandle.open ? "var(--green)" : "var(--red)";
+          lastCandle.close = livePrice;
+          if (livePrice > lastCandle.high) lastCandle.high = livePrice;
+          if (livePrice < lastCandle.low) lastCandle.low = livePrice;
+          candlestickSeries.update(lastCandle);
+        }
+      } catch (error) {}
+    }, 5000);
+
+    window.addEventListener('DOMContentLoaded', () => {
+      initChart(); loadChartData('NVDA'); fetchAllData();
+      setInterval(() => {
+        if (document.getElementById('tab-open').classList.contains('active')) { fetchPositions(); fetchAccountStats(); }
+        else if (document.getElementById('tab-pending').classList.contains('active')) { fetchPending(); fetchAccountStats(); }
+      }, 15000);
+    });
+  </script>
+</body>
+</html>
