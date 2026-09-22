@@ -284,29 +284,43 @@
     function openContactModal() { document.getElementById('contact-modal').classList.add('active'); }
     function openScreenerNotice() { showNotification("Market Screener module planned for next major release."); }
 
-   function submitContact() {
+   async function submitContact() {
+    const email = document.getElementById('contact-email').value || 'No email provided';
     const msg = document.getElementById('contact-message').value;
+    
     if (!msg) return showNotification("Please enter a message.", true);
     
-    window.location.href = "mailto:makehon.support@gmail.com?subject=Makehon Feedback&body=" + encodeURIComponent(msg);
+    showNotification("Sending feedback...");
     
-    showNotification("Opening your email client...");
-    closeModal('contact-modal');
-    document.getElementById('contact-message').value = '';
-    }
-
-    async function submitAuth(action) {
-      const user = document.getElementById('auth-username').value.trim();
-      const pass = document.getElementById('auth-password').value;
-      if(!user || !pass) return showNotification("Username and password required.", true);
-      try {
-        const response = await fetch(`/api/${action}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: user, password: pass }) });
+    try {
+        const response = await fetch("https://api.web3forms.com/submit", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Accept: "application/json",
+            },
+            body: JSON.stringify({
+                access_key: "YOUR_ACCESS_KEY_HERE",
+                subject: "New Makehon Feedback",
+                email: email,
+                message: msg
+            }),
+        });
+        
         const result = await response.json();
-        if(result.success) { showNotification(result.message); closeModal('auth-modal'); fetchAllData(); }
-        else { showNotification(result.message, true); }
-      } catch (error) { showNotification("Server error.", true); }
+        
+        if (result.success) {
+            showNotification("Thank you! Feedback received.");
+            closeModal('contact-modal');
+            document.getElementById('contact-message').value = '';
+            document.getElementById('contact-email').value = '';
+        } else {
+            showNotification("Delivery failed. Try again.", true);
+        }
+    } catch (error) {
+        showNotification("Network error. Please try again.", true);
     }
-
+}
     async function triggerLogout() {
       try { await fetch('/api/logout', { method: 'POST' }); showNotification("Logged out safely."); window.location.reload(); }
       catch (error) { showNotification("Error logging out.", true); }
