@@ -3,5 +3,4 @@ uvicorn
 yfinance
 pandas
 pydantic
-SQLAlchemy
 psycopg2-binary
