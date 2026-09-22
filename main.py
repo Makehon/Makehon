@@ -13,7 +13,7 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 
 # Securely grab the Render environment variable, or fallback to your specific Neon URL
-
+DATABASE_URL = os.environ.get("DATABASE_URL")
 
 def get_db_connection():
     """Establishes a connection to the Neon PostgreSQL database."""
