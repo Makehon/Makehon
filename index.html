@@ -284,13 +284,16 @@
     function openContactModal() { document.getElementById('contact-modal').classList.add('active'); }
     function openScreenerNotice() { showNotification("Market Screener module planned for next major release."); }
 
-    function submitContact() {
-      const msg = document.getElementById('contact-message').value;
-      if (!msg) return showNotification("Please enter a message.", true);
-      showNotification("Thank you for your feedback! Received.");
-      closeModal('contact-modal');
-      document.getElementById('contact-message').value = '';
-    }
+   function submitContact() {
+    const msg = document.getElementById('contact-message').value;
+    if (!msg) return showNotification("Please enter a message.", true);
+    
+    window.location.href = "mailto:makehon.support@gmail.com?subject=Makehon Feedback&body=" + encodeURIComponent(msg);
+    
+    showNotification("Opening your email client...");
+    closeModal('contact-modal');
+    document.getElementById('contact-message').value = '';
+}
 
     async function submitAuth(action) {
       const user = document.getElementById('auth-username').value.trim();
