@@ -310,7 +310,8 @@
         <div id="history-stats">
           <div><span>Total Trades:</span> <span class="highlight" id="stat-trades">0</span></div>
           <div><span>Win Rate:</span> <span class="highlight" id="stat-winrate">0.0%</span></div>
-          <div><span>Net Realized Profit:</span> <span class="highlight" id="stat-netprofit">$0.00</span></div>
+          <div><span>Profit Factor:</span> <span class="highlight" id="stat-profit-factor">0.0</span></div>
+          <div><span>Net Profit:</span> <span class="highlight" id="stat-netprofit">$0.00</span></div>
         </div>
         <table class="dock-table" id="table-history">
           <thead><tr><th>Date / Time</th><th>Ticker</th><th>Direction</th><th>Shares</th><th>Entry Price</th><th>Close Price</th><th>Realized PnL</th></tr></thead>
@@ -642,14 +643,8 @@
         const tbody = document.getElementById('history-tbody');
         tbody.innerHTML = '';
 
-        let wins = 0;
-        let netProfit = 0;
-
         if (data.success && data.history.length > 0) {
           data.history.forEach(trade => {
-            if (trade.pnl > 0) wins++;
-            netProfit += trade.pnl;
-
             const tr = document.createElement('tr');
             const pnlColor = trade.pnl >= 0 ? 'var(--green)' : 'var(--red)';
             tr.innerHTML = `
@@ -667,11 +662,16 @@
             tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #787b86; padding: 16px;">No trading history yet.</td></tr>';
         }
 
-        // UPGRADE: Update Personal Stats Ribbon
-        document.getElementById('stat-trades').innerText = data.history ? data.history.length : 0;
-        document.getElementById('stat-winrate').innerText = data.history && data.history.length > 0 ? ((wins / data.history.length) * 100).toFixed(1) + '%' : '0.0%';
-        document.getElementById('stat-netprofit').innerText = (netProfit >= 0 ? '+$' : '-$') + Math.abs(netProfit).toFixed(2);
-        document.getElementById('stat-netprofit').style.color = netProfit >= 0 ? 'var(--green)' : 'var(--red)';
+        // Apply pre-calculated stats directly from the Python backend
+        if (data.stats) {
+          document.getElementById('stat-trades').innerText = data.stats.total_trades;
+          document.getElementById('stat-winrate').innerText = data.stats.win_rate + '%';
+          document.getElementById('stat-profit-factor').innerText = data.stats.profit_factor;
+          
+          const net = data.stats.net_profit;
+          document.getElementById('stat-netprofit').innerText = (net >= 0 ? '+$' : '-$') + Math.abs(net).toFixed(2);
+          document.getElementById('stat-netprofit').style.color = net >= 0 ? 'var(--green)' : 'var(--red)';
+        }
 
       } catch (error) {}
     }
