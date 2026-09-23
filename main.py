@@ -297,7 +297,37 @@ def get_history(account_id: str = Depends(get_account)):
     cursor.execute("SELECT * FROM trade_history WHERE account_id = %s ORDER BY closed_at DESC", (account_id,))
     history = [dict(row) for row in cursor.fetchall()]
     conn.close()
-    return {"success": True, "history": history}
+
+    wins = 0
+    gross_profit = 0.0
+    gross_loss = 0.0
+
+    for trade in history:
+        if trade['pnl'] > 0:
+            wins += 1
+            gross_profit += trade['pnl']
+        else:
+            gross_loss += abs(trade['pnl'])
+
+    net_profit = gross_profit - gross_loss
+    win_rate = round((wins / len(history)) * 100, 1) if history else 0.0
+    
+    # Calculate Profit Factor (avoiding division by zero)
+    if gross_loss > 0:
+        profit_factor = round(gross_profit / gross_loss, 2)
+    elif gross_profit > 0:
+        profit_factor = round(gross_profit, 2)
+    else:
+        profit_factor = 0.0
+
+    stats = {
+        "total_trades": len(history),
+        "win_rate": win_rate,
+        "net_profit": net_profit,
+        "profit_factor": profit_factor
+    }
+
+    return {"success": True, "history": history, "stats": stats}
 
 @app.post("/api/edit_position")
 def edit_position(req: EditPositionRequest, account_id: str = Depends(get_account)):
