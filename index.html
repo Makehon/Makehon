@@ -307,10 +307,15 @@
 
       <div id="wrapper-history" class="hidden">
         <!-- UPGRADE: Personal Stats Ribbon -->
-        <div id="history-stats">
+        <div id="history-stats" style="flex-wrap: wrap;">
           <div><span>Total Trades:</span> <span class="highlight" id="stat-trades">0</span></div>
           <div><span>Win Rate:</span> <span class="highlight" id="stat-winrate">0.0%</span></div>
           <div><span>Profit Factor:</span> <span class="highlight" id="stat-profit-factor">0.0</span></div>
+          <div><span>Avg Win:</span> <span class="highlight" style="color: var(--green);" id="stat-avg-win">$0.00</span></div>
+          <div><span>Avg Loss:</span> <span class="highlight" style="color: var(--red);" id="stat-avg-loss">$0.00</span></div>
+          <div><span>Long Win %:</span> <span class="highlight" id="stat-long-win">0.0%</span></div>
+          <div><span>Short Win %:</span> <span class="highlight" id="stat-short-win">0.0%</span></div>
+          <div><span>Max Drawdown:</span> <span class="highlight" style="color: var(--red);" id="stat-drawdown">$0.00</span></div>
           <div><span>Net Profit:</span> <span class="highlight" id="stat-netprofit">$0.00</span></div>
         </div>
         <table class="dock-table" id="table-history">
@@ -663,10 +668,16 @@
         }
 
         // Apply pre-calculated stats directly from the Python backend
+        // Apply pre-calculated stats directly from the Python backend
         if (data.stats) {
           document.getElementById('stat-trades').innerText = data.stats.total_trades;
           document.getElementById('stat-winrate').innerText = data.stats.win_rate + '%';
           document.getElementById('stat-profit-factor').innerText = data.stats.profit_factor;
+          document.getElementById('stat-avg-win').innerText = '$' + data.stats.avg_win.toFixed(2);
+          document.getElementById('stat-avg-loss').innerText = '$' + data.stats.avg_loss.toFixed(2);
+          document.getElementById('stat-long-win').innerText = data.stats.long_win_rate + '%';
+          document.getElementById('stat-short-win').innerText = data.stats.short_win_rate + '%';
+          document.getElementById('stat-drawdown').innerText = '$' + data.stats.max_drawdown.toFixed(2);
           
           const net = data.stats.net_profit;
           document.getElementById('stat-netprofit').innerText = (net >= 0 ? '+$' : '-$') + Math.abs(net).toFixed(2);
