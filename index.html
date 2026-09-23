@@ -165,6 +165,22 @@
     </div>
   </div>
 
+  <div class="modal-overlay" id="edit-modal">
+    <div class="modal-content">
+      <div class="modal-header"><span>Edit TP / SL</span><button class="modal-close" onclick="closeModal('edit-modal')">&times;</button></div>
+      <input type="hidden" id="edit-position-id" />
+      <div class="input-group">
+        <label>Take Profit ($) <span style="font-weight:normal; color:#5d606b;">- Leave blank to remove</span></label>
+        <div class="currency-input"><span>$</span><input type="number" id="edit-tp" placeholder="No Take Profit" /></div>
+      </div>
+      <div class="input-group">
+        <label>Stop Loss ($) <span style="font-weight:normal; color:#5d606b;">- Leave blank to remove</span></label>
+        <div class="currency-input"><span>$</span><input type="number" id="edit-sl" placeholder="No Stop Loss" /></div>
+      </div>
+      <div class="auth-buttons"><button class="btn-login-action" onclick="submitEditPosition()">Save Changes</button></div>
+    </div>
+  </div>
+
   <div class="modal-overlay" id="contact-modal">
     <div class="modal-content">
       <div class="modal-header"><span>Contact & Feedback</span><button class="modal-close" onclick="closeModal('contact-modal')">&times;</button></div>
@@ -572,8 +588,11 @@
               <td>$${currentPrice.toFixed(2)}</td>
               <td>${pos.leverage}x</td>
               <td>$${pos.margin_locked.toFixed(2)}</td>
-              <td style="color: ${pnlColor}; font-weight: bold;">${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)}</td>
-              <td><button onclick="openCloseModal(${pos.id})" style="background: transparent; border: 1px solid #f23645; color: #f23645; border-radius: 4px; padding: 4px 8px; cursor: pointer;">Close</button></td>
+              
+              <td style="display: flex; gap: 4px;">
+                <button onclick="openEditModal(${pos.id}, ${pos.take_profit || ''}, ${pos.stop_loss || ''})" style="background: transparent; border: 1px solid var(--accent); color: var(--accent); border-radius: 4px; padding: 4px 8px; cursor: pointer;">Edit</button>
+                <button onclick="openCloseModal(${pos.id})" style="background: transparent; border: 1px solid #f23645; color: #f23645; border-radius: 4px; padding: 4px 8px; cursor: pointer;">Close</button>
+              </td>
             `;
             tbody.appendChild(tr);
           });
@@ -702,6 +721,44 @@
         if(result.success) { showNotification(result.message); closeModal('close-modal'); fetchAllData(); }
         else { showNotification(result.message, true); }
       } catch (error) { showNotification("Failed to close position.", true); }
+    }
+
+    function openEditModal(id, currentTp, currentSl) {
+      document.getElementById('edit-position-id').value = id;
+      document.getElementById('edit-tp').value = currentTp || '';
+      document.getElementById('edit-sl').value = currentSl || '';
+      document.getElementById('edit-modal').classList.add('active');
+    }
+
+    async function submitEditPosition() {
+      const id = document.getElementById('edit-position-id').value;
+      const tp = document.getElementById('edit-tp').value;
+      const sl = document.getElementById('edit-sl').value;
+
+      const payload = { 
+        position_id: parseInt(id),
+        take_profit: tp ? parseFloat(tp) : null,
+        stop_loss: sl ? parseFloat(sl) : null
+      };
+
+      try {
+        const response = await fetch('/api/edit_position', { 
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' }, 
+            body: JSON.stringify(payload) 
+        });
+        const result = await response.json();
+        
+        if (result.success) { 
+            showNotification(result.message); 
+            closeModal('edit-modal'); 
+            fetchAllData(); 
+        } else { 
+            showNotification(result.message, true); 
+        }
+      } catch (error) { 
+          showNotification("Failed to edit position.", true); 
+      }
     }
 
     async function submitOrder() {
