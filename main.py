@@ -294,25 +294,59 @@ def get_pending(account_id: str = Depends(get_account)):
 def get_history(account_id: str = Depends(get_account)):
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM trade_history WHERE account_id = %s ORDER BY closed_at DESC", (account_id,))
-    history = [dict(row) for row in cursor.fetchall()]
+    # Fetch ascending to calculate chronological drawdown
+    cursor.execute("SELECT * FROM trade_history WHERE account_id = %s ORDER BY closed_at ASC", (account_id,))
+    history_asc = [dict(row) for row in cursor.fetchall()]
     conn.close()
 
     wins = 0
     gross_profit = 0.0
     gross_loss = 0.0
+    
+    long_trades = 0
+    long_wins = 0
+    short_trades = 0
+    short_wins = 0
 
-    for trade in history:
+    peak_equity = 100000.0
+    current_equity = 100000.0
+    max_drawdown = 0.0
+
+    for trade in history_asc:
+        # 1. Max Drawdown Tracker
+        current_equity += trade['pnl']
+        if current_equity > peak_equity:
+            peak_equity = current_equity
+        drawdown = peak_equity - current_equity
+        if drawdown > max_drawdown:
+            max_drawdown = drawdown
+
+        # 2. Long vs Short Edge
+        if trade['side'] == 'BUY':
+            long_trades += 1
+            if trade['pnl'] > 0: long_wins += 1
+        else:
+            short_trades += 1
+            if trade['pnl'] > 0: short_wins += 1
+
+        # 3. Profit Factor & Averages
         if trade['pnl'] > 0:
             wins += 1
             gross_profit += trade['pnl']
         else:
             gross_loss += abs(trade['pnl'])
 
+    total_trades = len(history_asc)
     net_profit = gross_profit - gross_loss
-    win_rate = round((wins / len(history)) * 100, 1) if history else 0.0
+    win_rate = round((wins / total_trades) * 100, 1) if total_trades else 0.0
     
-    # Calculate Profit Factor (avoiding division by zero)
+    long_win_rate = round((long_wins / long_trades) * 100, 1) if long_trades else 0.0
+    short_win_rate = round((short_wins / short_trades) * 100, 1) if short_trades else 0.0
+
+    avg_win = round(gross_profit / wins, 2) if wins else 0.0
+    loses = total_trades - wins
+    avg_loss = round(gross_loss / loses, 2) if loses else 0.0
+    
     if gross_loss > 0:
         profit_factor = round(gross_profit / gross_loss, 2)
     elif gross_profit > 0:
@@ -321,13 +355,20 @@ def get_history(account_id: str = Depends(get_account)):
         profit_factor = 0.0
 
     stats = {
-        "total_trades": len(history),
+        "total_trades": total_trades,
         "win_rate": win_rate,
         "net_profit": net_profit,
-        "profit_factor": profit_factor
+        "profit_factor": profit_factor,
+        "avg_win": avg_win,
+        "avg_loss": avg_loss,
+        "long_win_rate": long_win_rate,
+        "short_win_rate": short_win_rate,
+        "max_drawdown": max_drawdown
     }
 
-    return {"success": True, "history": history, "stats": stats}
+    # Reverse list so newest trades appear first in the frontend table
+    history_desc = list(reversed(history_asc))
+    return {"success": True, "history": history_desc, "stats": stats}
 
 @app.post("/api/edit_position")
 def edit_position(req: EditPositionRequest, account_id: str = Depends(get_account)):
