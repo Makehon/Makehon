@@ -243,7 +243,7 @@
           <label>Stop Loss</label>
           <div class="currency-input"><span>$</span><input type="number" id="input-sl" placeholder="Optional Auto-Sell Target" /></div>
         </div>
-       <div class="input-group">
+        <div class="input-group">
           <label>Leverage</label>
           <div style="display: flex; gap: 8px;">
             <select id="input-leverage" onchange="toggleCustomLeverage()" style="flex: 1;">
@@ -426,9 +426,24 @@
       calculateOrderCost();
     }
 
+    function toggleCustomLeverage() {
+      const select = document.getElementById('input-leverage');
+      const custom = document.getElementById('input-custom-leverage');
+      if (select.value === 'custom') {
+        custom.classList.remove('hidden');
+        custom.focus();
+      } else {
+        custom.classList.add('hidden');
+      }
+      calculateOrderCost();
+    }
+
     function calculateOrderCost() {
       const shares = parseInt(document.getElementById('input-shares').value) || 0;
-      const leverage = parseInt(document.getElementById('input-leverage').value) || 1;
+      const levVal = document.getElementById('input-leverage').value;
+      let leverage = levVal === 'custom' ? parseInt(document.getElementById('input-custom-leverage').value) : parseInt(levVal);
+      if (!leverage || leverage < 1) leverage = 1;
+
       const limitEntry = parseFloat(document.getElementById('input-entry').value);
       const executionPrice = (!isNaN(limitEntry) && limitEntry > 0) ? limitEntry : currentLiveQuote;
       const totalCost = (shares * executionPrice) / leverage;
@@ -690,10 +705,19 @@
     }
 
     async function submitOrder() {
+      const levVal = document.getElementById('input-leverage').value;
+      let leverage = levVal === 'custom' ? parseInt(document.getElementById('input-custom-leverage').value) : parseInt(levVal);
+      if (!leverage || leverage < 1) leverage = 1;
+
       const payload = {
-        ticker: document.getElementById('input-ticker').value, action: currentAction, shares: parseInt(document.getElementById('input-shares').value), leverage: parseInt(document.getElementById('input-leverage').value),
-        order_type: document.getElementById('input-order-type').value, entry_price: document.getElementById('input-entry').value ? parseFloat(document.getElementById('input-entry').value) : null,
-        take_profit: document.getElementById('input-tp').value ? parseFloat(document.getElementById('input-tp').value) : null, stop_loss: document.getElementById('input-sl').value ? parseFloat(document.getElementById('input-sl').value) : null
+        ticker: document.getElementById('input-ticker').value, 
+        action: currentAction, 
+        shares: parseInt(document.getElementById('input-shares').value), 
+        leverage: leverage,
+        order_type: document.getElementById('input-order-type').value, 
+        entry_price: document.getElementById('input-entry').value ? parseFloat(document.getElementById('input-entry').value) : null,
+        take_profit: document.getElementById('input-tp').value ? parseFloat(document.getElementById('input-tp').value) : null, 
+        stop_loss: document.getElementById('input-sl').value ? parseFloat(document.getElementById('input-sl').value) : null
       };
 
       try {
