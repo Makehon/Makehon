@@ -13,11 +13,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Makehon</title>
-
-  <meta name="description" content="Practice trading stocks with $100,000 of virtual cash. Test strategies with live market data, pending orders, and 5x leverage without the financial risk.">
   <link rel="canonical" href="https://makehon.com/">
   
-
   <!-- Primary Meta Tags -->
   <meta name="title" content="Makehon - Advanced Trading Simulator">
   <meta name="description" content="Practice trading stocks with $100,000 of virtual cash. Test strategies with live market data, pending orders, and leverage without the financial risk.">
@@ -197,7 +194,12 @@
   <div class="workspace">
     <div class="chart-section">
       <div class="chart-header">
-        <div><h2 class="highlight" id="chart-title">Loading...</h2><span style="font-size: 20px; font-weight: bold; color: var(--green);" id="chart-price">...</span></div>
+        <div>
+          <h2 class="highlight" id="chart-title" style="display: inline-block; margin-right: 10px;">Loading...</h2>
+          <span style="font-size: 10px; border: 1px solid #787b86; color: #787b86; padding: 2px 6px; border-radius: 4px; vertical-align: middle;">15m Delay</span>
+          <br>
+          <span style="font-size: 20px; font-weight: bold; color: var(--green);" id="chart-price">...</span>
+        </div>
         <div class="timeframe-bar">
           <button onclick="setTimeframe('1m', this)">1m</button>
           <button onclick="setTimeframe('5m', this)">5m</button>
@@ -353,41 +355,41 @@
         showNotification("Network error. Please try again.", true);
     }
 }
-    async function submitAuth(isLogin) {
-    const userField = document.querySelector('input[placeholder="Username"]') || document.getElementById('auth-username');
-    const passField = document.querySelector('input[type="password"]') || document.getElementById('auth-password');
     
-    const username = userField ? userField.value : "";
-    const password = passField ? passField.value : "";
-
-    if (!username || !password) {
-        return showNotification("Username and password are required.", true);
-    }
-
-    const endpoint = isLogin === 'login' ? "/api/login" : "/api/register";
-
-    try {
-        const response = await fetch(endpoint, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({ username: username, password: password })
-        });
+    async function submitAuth(isLogin) {
+        const userField = document.querySelector('input[placeholder="Username"]') || document.getElementById('auth-username');
+        const passField = document.querySelector('input[type="password"]') || document.getElementById('auth-password');
         
-        const data = await response.json();
-        
-        if (data.success) {
-            showNotification(data.message);
-            closeModal('auth-modal');
-            setTimeout(() => window.location.reload(), 1500); 
-        } else {
-            showNotification(data.message, true); 
+        const username = userField ? userField.value : "";
+        const password = passField ? passField.value : "";
+
+        if (!username || !password) {
+            return showNotification("Username and password are required.", true);
         }
-    } catch (error) {
-        showNotification("Server error. Please try again later.", true);
+
+        const endpoint = isLogin === 'login' ? "/api/login" : "/api/register";
+
+        try {
+            const response = await fetch(endpoint, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ username: username, password: password })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                showNotification(data.message);
+                closeModal('auth-modal');
+                setTimeout(() => window.location.reload(), 1500); 
+            } else {
+                showNotification(data.message, true); 
+            }
+        } catch (error) {
+            showNotification("Server error. Please try again later.", true);
+        }
     }
-}
+
     async function triggerLogout() {
       try { await fetch('/api/logout', { method: 'POST' }); showNotification("Logged out safely."); window.location.reload(); }
       catch (error) { showNotification("Error logging out.", true); }
@@ -455,6 +457,13 @@
         grid: { vertLines: { color: '#2a2e39' }, horzLines: { color: '#2a2e39' } },
         timeScale: { timeVisible: true, secondsVisible: false },
         crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+        localization: {
+          timeFormatter: (time) => {
+            return new Date(time * 1000).toLocaleString('en-US', { 
+              timeZone: 'America/New_York', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false 
+            });
+          }
+        },
         width: container.clientWidth, height: container.clientHeight
       });
       candlestickSeries = chart.addCandlestickSeries({ upColor: '#089981', downColor: '#f23645', borderVisible: false, wickUpColor: '#089981', wickDownColor: '#f23645' });
