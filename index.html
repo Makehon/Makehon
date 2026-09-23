@@ -588,9 +588,10 @@
               <td>$${currentPrice.toFixed(2)}</td>
               <td>${pos.leverage}x</td>
               <td>$${pos.margin_locked.toFixed(2)}</td>
+              <td style="color: ${pnlColor}; font-weight: bold;">${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)}</td>
               
               <td style="display: flex; gap: 4px;">
-                <button onclick="openEditModal(${pos.id}, ${pos.take_profit || ''}, ${pos.stop_loss || ''})" style="background: transparent; border: 1px solid var(--accent); color: var(--accent); border-radius: 4px; padding: 4px 8px; cursor: pointer;">Edit</button>
+                <button onclick="openEditModal(${pos.id}, ${pos.take_profit || null}, ${pos.stop_loss || null})" style="background: transparent; border: 1px solid var(--accent); color: var(--accent); border-radius: 4px; padding: 4px 8px; cursor: pointer;">Edit</button>
                 <button onclick="openCloseModal(${pos.id})" style="background: transparent; border: 1px solid #f23645; color: #f23645; border-radius: 4px; padding: 4px 8px; cursor: pointer;">Close</button>
               </td>
             `;
