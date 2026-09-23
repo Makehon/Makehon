@@ -125,6 +125,11 @@ class CloseRequest(BaseModel):
     position_id: int
     target_price: Optional[float] = None
 
+class EditPositionRequest(BaseModel):
+    position_id: int
+    take_profit: Optional[float] = None
+    stop_loss: Optional[float] = None
+
 class CancelPendingRequest(BaseModel):
     order_id: int
 
@@ -294,6 +299,29 @@ def get_history(account_id: str = Depends(get_account)):
     conn.close()
     return {"success": True, "history": history}
 
+@app.post("/api/edit_position")
+def edit_position(req: EditPositionRequest, account_id: str = Depends(get_account)):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        # Verify the position belongs to the user
+        cursor.execute("SELECT id FROM positions WHERE id = %s AND account_id = %s", (req.position_id, account_id))
+        if not cursor.fetchone():
+            return {"success": False, "message": "Position not found."}
+            
+        cursor.execute("""
+            UPDATE positions 
+            SET take_profit = %s, stop_loss = %s 
+            WHERE id = %s
+        """, (req.take_profit, req.stop_loss, req.position_id))
+        conn.commit()
+        return {"success": True, "message": "Position TP/SL updated successfully."}
+    except Exception as e:
+        conn.rollback()
+        return {"success": False, "message": str(e)}
+    finally:
+        conn.close()
+        
 @app.post("/api/close")
 def close_position(req: CloseRequest, account_id: str = Depends(get_account)):
     conn = get_db_connection()
