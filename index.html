@@ -243,12 +243,21 @@
           <label>Stop Loss</label>
           <div class="currency-input"><span>$</span><input type="number" id="input-sl" placeholder="Optional Auto-Sell Target" /></div>
         </div>
-        <div class="input-group">
+       <div class="input-group">
           <label>Leverage</label>
-          <select id="input-leverage" onchange="calculateOrderCost()">
-            <option value="1">1x (No Margin)</option>
-            <option value="5" selected>5x Leverage</option>
-          </select>
+          <div style="display: flex; gap: 8px;">
+            <select id="input-leverage" onchange="toggleCustomLeverage()" style="flex: 1;">
+              <option value="1">1x (No Margin)</option>
+              <option value="5" selected>5x</option>
+              <option value="10">10x</option>
+              <option value="50">50x</option>
+              <option value="100">100x</option>
+              <option value="500">500x</option>
+              <option value="1000">1000x</option>
+              <option value="custom">Custom...</option>
+            </select>
+            <input type="number" id="input-custom-leverage" class="hidden" placeholder="Max 1000" min="1" max="1000" oninput="calculateOrderCost()" style="flex: 1;">
+          </div>
         </div>
 
         <div class="order-summary">
