@@ -485,6 +485,36 @@ def get_leaderboard(period: str = "month"):
     conn.close()
     return {"success": True, "leaders": leaders}
 
+@app.get("/api/screener")
+def get_screener():
+    # Curated watchlist of highly liquid/volatile trading assets
+    tickers_list = "NVDA TSLA AMD AAPL AMZN MSFT META PLTR COIN SMCI MSTR GME SPY QQQ"
+    try:
+        data = yf.Tickers(tickers_list)
+        results = []
+        for symbol, ticker in data.tickers.items():
+            try:
+                info = ticker.fast_info
+                last = info.get('lastPrice')
+                prev = info.get('previousClose')
+                vol = info.get('lastVolume')
+                if last and prev:
+                    change_pct = ((last - prev) / prev) * 100
+                    results.append({
+                        "ticker": symbol,
+                        "price": round(last, 2),
+                        "change": round(change_pct, 2),
+                        "volume": vol or 0
+                    })
+            except Exception:
+                continue
+        
+        # Sort the list so the highest positive percent change is at the top
+        results = sorted(results, key=lambda x: x['change'], reverse=True)
+        return {"success": True, "data": results}
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
     uvicorn.run("main:app", host="0.0.0.0", port=port)
