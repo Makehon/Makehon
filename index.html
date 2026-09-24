@@ -190,6 +190,18 @@
     </div>
   </div>
 
+  <div class="modal-overlay" id="screener-modal">
+    <div class="modal-content" style="width: 450px; max-height: 80vh; overflow-y: auto;">
+      <div class="modal-header"><span>Market Movers</span><button class="modal-close" onclick="closeModal('screener-modal')">&times;</button></div>
+      <table class="dock-table" style="margin-top: 10px;">
+        <thead><tr><th>Ticker</th><th>Price</th><th>Change %</th><th>Volume</th></tr></thead>
+        <tbody id="screener-tbody">
+          <tr><td colspan="4" style="text-align:center; padding: 20px; color: #787b86;">Loading live market data...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
   <div id="toast-container"></div>
 
   <header>
@@ -347,7 +359,39 @@
 
     function closeModal(modalId) { document.getElementById(modalId).classList.remove('active'); }
     function openContactModal() { document.getElementById('contact-modal').classList.add('active'); }
-    function openScreenerNotice() { showNotification("Market Screener module planned for next major release."); }
+
+    async function openScreenerModal() {
+      document.getElementById('screener-modal').classList.add('active');
+      document.getElementById('screener-tbody').innerHTML = '<tr><td colspan="4" style="text-align:center; padding: 20px; color: #787b86;">Loading live market data...</td></tr>';
+      
+      try {
+        const response = await fetch('/api/screener');
+        const result = await response.json();
+        
+        if (result.success && result.data.length > 0) {
+          let html = '';
+          result.data.forEach(item => {
+            const color = item.change >= 0 ? 'var(--green)' : 'var(--red)';
+            const sign = item.change >= 0 ? '+' : '';
+            const vol = (item.volume / 1000000).toFixed(1) + 'M'; // Converts volume to Millions
+            
+            html += `
+              <tr style="cursor: pointer; transition: 0.2s;" onmouseover="this.style.background='#2a2e39'" onmouseout="this.style.background='transparent'" onclick="loadChartData('${item.ticker}'); closeModal('screener-modal');">
+                <td><strong>${item.ticker}</strong></td>
+                <td>$${item.price.toFixed(2)}</td>
+                <td style="color: ${color}; font-weight: bold;">${sign}${item.change.toFixed(2)}%</td>
+                <td style="color: #787b86;">${vol}</td>
+              </tr>
+            `;
+          });
+          document.getElementById('screener-tbody').innerHTML = html;
+        } else {
+          document.getElementById('screener-tbody').innerHTML = '<tr><td colspan="4" style="text-align:center; padding: 20px; color: #787b86;">Screener data unavailable.</td></tr>';
+        }
+      } catch (error) {
+        document.getElementById('screener-tbody').innerHTML = '<tr><td colspan="4" style="text-align:center; padding: 20px; color: #f23645;">Network error.</td></tr>';
+      }
+    }
 
    async function submitContact() {
     const email = document.getElementById('contact-email').value || 'No email provided';
