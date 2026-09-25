@@ -266,14 +266,31 @@
           <label>Target Entry Price</label>
           <div class="currency-input"><span>$</span><input type="number" id="input-entry" placeholder="e.g. 220.00" oninput="calculateOrderCost()" /></div>
         </div>
+        
         <div class="input-group">
-          <label>Take Profit</label>
-          <div class="currency-input"><span>$</span><input type="number" id="input-tp" placeholder="Optional Auto-Sell Target" /></div>
+          <div style="display: flex; justify-content: space-between; align-items: flex-end;">
+            <label>Take Profit</label>
+            <div style="display: flex; gap: 4px;">
+              <button type="button" style="background:transparent; border:1px solid #787b86; color:#787b86; border-radius:3px; font-size:10px; padding: 2px 6px; cursor:pointer;" onclick="setTargetPct('tp', 2)">2%</button>
+              <button type="button" style="background:transparent; border:1px solid #787b86; color:#787b86; border-radius:3px; font-size:10px; padding: 2px 6px; cursor:pointer;" onclick="setTargetPct('tp', 5)">5%</button>
+              <button type="button" style="background:transparent; border:1px solid #787b86; color:#787b86; border-radius:3px; font-size:10px; padding: 2px 6px; cursor:pointer;" onclick="setTargetPct('tp', 10)">10%</button>
+            </div>
+          </div>
+          <div class="currency-input"><span>$</span><input type="number" id="input-tp" placeholder="Auto-Sell Target" oninput="calculateOrderCost()" /></div>
         </div>
+        
         <div class="input-group">
-          <label>Stop Loss</label>
-          <div class="currency-input"><span>$</span><input type="number" id="input-sl" placeholder="Optional Auto-Sell Target" /></div>
+          <div style="display: flex; justify-content: space-between; align-items: flex-end;">
+            <label>Stop Loss</label>
+            <div style="display: flex; gap: 4px;">
+              <button type="button" style="background:transparent; border:1px solid #787b86; color:#787b86; border-radius:3px; font-size:10px; padding: 2px 6px; cursor:pointer;" onclick="setTargetPct('sl', 1)">1%</button>
+              <button type="button" style="background:transparent; border:1px solid #787b86; color:#787b86; border-radius:3px; font-size:10px; padding: 2px 6px; cursor:pointer;" onclick="setTargetPct('sl', 2)">2%</button>
+              <button type="button" style="background:transparent; border:1px solid #787b86; color:#787b86; border-radius:3px; font-size:10px; padding: 2px 6px; cursor:pointer;" onclick="setTargetPct('sl', 5)">5%</button>
+            </div>
+          </div>
+          <div class="currency-input"><span>$</span><input type="number" id="input-sl" placeholder="Auto-Sell Target" oninput="calculateOrderCost()" /></div>
         </div>
+
         <div class="input-group">
           <label>Leverage</label>
           <div style="display: flex; gap: 8px;">
@@ -291,9 +308,19 @@
           </div>
         </div>
 
-        <div class="order-summary">
-          <span>Est. Margin Required:</span>
-          <span class="highlight" id="est-margin-cost">$0.00</span>
+        <div class="order-summary" style="flex-direction: column; gap: 6px;">
+          <div style="display: flex; justify-content: space-between;">
+            <span>Est. Margin Required:</span>
+            <span class="highlight" id="est-margin-cost">$0.00</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; color: var(--green);">
+            <span>Projected TP Profit:</span>
+            <span class="highlight" id="est-tp-profit">--</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; color: var(--red);">
+            <span>Projected SL Loss:</span>
+            <span class="highlight" id="est-sl-loss">--</span>
+          </div>
         </div>
 
         <button class="btn-submit" onclick="submitOrder()">Submit Order</button>
@@ -474,10 +501,12 @@
     }
 
     let currentAction = "BUY";
+    
     function setAction(action) {
       currentAction = action;
       document.getElementById('btn-buy').style.opacity = action === 'BUY' ? "1" : "0.5";
       document.getElementById('btn-sell').style.opacity = action === 'SELL' ? "1" : "0.5";
+      calculateOrderCost();
     }
 
     function toggleSidebar() {
@@ -507,6 +536,21 @@
       calculateOrderCost();
     }
 
+    function setTargetPct(type, pct) {
+      const limitEntry = parseFloat(document.getElementById('input-entry').value);
+      const executionPrice = (!isNaN(limitEntry) && limitEntry > 0) ? limitEntry : currentLiveQuote;
+      
+      let targetPrice;
+      if (currentAction === 'BUY') {
+          targetPrice = type === 'tp' ? executionPrice * (1 + (pct/100)) : executionPrice * (1 - (pct/100));
+      } else {
+          targetPrice = type === 'tp' ? executionPrice * (1 - (pct/100)) : executionPrice * (1 + (pct/100));
+      }
+      
+      document.getElementById(`input-${type}`).value = targetPrice.toFixed(2);
+      calculateOrderCost();
+    }
+
     function calculateOrderCost() {
       const shares = parseInt(document.getElementById('input-shares').value) || 0;
       const levVal = document.getElementById('input-leverage').value;
@@ -517,6 +561,24 @@
       const executionPrice = (!isNaN(limitEntry) && limitEntry > 0) ? limitEntry : currentLiveQuote;
       const totalCost = (shares * executionPrice) / leverage;
       document.getElementById('est-margin-cost').innerText = `$${totalCost.toFixed(2)}`;
+
+      // Live Risk/Reward Projection
+      const tp = parseFloat(document.getElementById('input-tp').value);
+      const sl = parseFloat(document.getElementById('input-sl').value);
+      
+      if (!isNaN(tp) && tp > 0) {
+        const tpProfit = currentAction === 'BUY' ? (tp - executionPrice) * shares : (executionPrice - tp) * shares;
+        document.getElementById('est-tp-profit').innerText = tpProfit > 0 ? `+$${tpProfit.toFixed(2)}` : `$${tpProfit.toFixed(2)}`;
+      } else {
+        document.getElementById('est-tp-profit').innerText = '--';
+      }
+
+      if (!isNaN(sl) && sl > 0) {
+        const slLoss = currentAction === 'BUY' ? (sl - executionPrice) * shares : (executionPrice - sl) * shares;
+        document.getElementById('est-sl-loss').innerText = slLoss < 0 ? `-$${Math.abs(slLoss).toFixed(2)}` : `+$${slLoss.toFixed(2)}`;
+      } else {
+        document.getElementById('est-sl-loss').innerText = '--';
+      }
     }
 
     function switchTab(tabName) {
@@ -714,7 +776,6 @@
             tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #787b86; padding: 16px;">No trading history yet.</td></tr>';
         }
 
-        // Apply pre-calculated stats directly from the Python backend
         // Apply pre-calculated stats directly from the Python backend
         if (data.stats) {
           document.getElementById('stat-trades').innerText = data.stats.total_trades;
