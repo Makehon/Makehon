@@ -476,7 +476,7 @@ def get_leaderboard(period: str = "month"):
         WHERE a.username IS NOT NULL 
           AND th.closed_at >= NOW() - INTERVAL '{time_filter}'
         GROUP BY a.id, a.username
-        HAVING COUNT(th.id) > 0
+        HAVING COUNT(th.id) > 10
         ORDER BY total_pnl DESC
         LIMIT 25
     """
