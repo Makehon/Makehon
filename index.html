@@ -131,6 +131,96 @@
     .toast { background: var(--accent); color: white; padding: 14px 28px; border-radius: 6px; font-weight: bold; font-size: 14px; box-shadow: 0 4px 15px rgba(0,0,0,0.4); opacity: 0; transform: translateY(-20px); transition: all 0.3s ease-in-out; }
     .toast.show { opacity: 1; transform: translateY(0); }
     .toast.error { background: var(--red); }
+
+    /* Mobile Responsive Layout */
+    @media (max-width: 768px) {
+      body {
+        height: auto;
+        min-height: 100vh;
+        overflow-x: hidden;
+        overflow-y: auto;
+      }
+
+      header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+        padding: 10px 12px;
+      }
+
+      .header-left {
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .top-search-bar {
+        width: 100%;
+        order: 3;
+      }
+
+      .header-right {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        font-size: 12px;
+        gap: 8px;
+        border-top: 1px solid var(--border);
+        padding-top: 8px;
+      }
+
+      .workspace {
+        flex-direction: column;
+        flex: none;
+      }
+
+      .chart-section {
+        flex: none;
+        height: 420px;
+        min-height: 420px;
+        padding: 10px;
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+      }
+
+      #chart-container {
+        height: 330px;
+        width: 100%;
+      }
+
+      .sidebar {
+        min-width: 100%;
+        max-width: 100%;
+        flex: none;
+        overflow: visible;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .dock {
+        height: auto;
+        min-height: 320px;
+        flex: none;
+      }
+
+      .dock-tabs {
+        overflow-x: auto;
+        white-space: nowrap;
+      }
+
+      .dock-content {
+        overflow-x: auto;
+      }
+
+      .dock-table {
+        min-width: 600px; /* Allows horizontal table scroll without squishing columns */
+      }
+
+      .modal-content {
+        width: 90% !important;
+        max-width: 360px;
+        padding: 16px;
+      }
+    }
   </style>
 </head>
 <body>
