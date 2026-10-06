@@ -235,10 +235,14 @@
     </div>
   </div>
 
-  <div class="modal-overlay" id="reset-modal">
+<div class="modal-overlay" id="reset-modal">
     <div class="modal-content">
       <div class="modal-header"><span style="color: var(--red);">Reset Account?</span><button class="modal-close" onclick="closeModal('reset-modal')">&times;</button></div>
-      <p style="font-size: 14px; color: #d1d4dc;">Are you sure you want to completely reset your account? This will close all open positions, pending orders, and permanently delete your trade history.</p>
+      <p style="font-size: 14px; color: #d1d4dc;">This will close all open positions, pending orders, and permanently delete your trade history.</p>
+      <div class="input-group" style="margin-top: 5px;">
+        <label>New Starting Balance ($)</label>
+        <div class="currency-input"><span>$</span><input type="number" id="reset-balance" value="100000" step="500" min="100" /></div>
+      </div>
       <div class="auth-buttons"><button class="btn-cancel-action" onclick="closeModal('reset-modal')">Cancel</button><button class="btn-danger-action" onclick="submitReset()">Yes, Reset</button></div>
     </div>
   </div>
@@ -456,8 +460,8 @@
         </table>
       </div>
 
-      <table class="dock-table hidden" id="table-leaderboard">
-        <thead><tr><th>Rank</th><th>Trader</th><th>Total Trades</th><th>Win Rate</th><th>Realized Profit</th></tr></thead>
+<table class="dock-table hidden" id="table-leaderboard">
+        <thead><tr><th>Rank</th><th>Trader</th><th>Total Trades</th><th>Win Rate</th><th>Return on Investment</th></tr></thead>
         <tbody id="leaderboard-tbody"></tbody>
       </table>
     </div>
@@ -895,7 +899,7 @@
         if (data.success && data.leaders.length > 0) {
           data.leaders.forEach((leader, idx) => {
             const tr = document.createElement('tr');
-            const pnlColor = leader.total_pnl >= 0 ? 'var(--green)' : 'var(--red)';
+            const pnlColor = leader.roi >= 0 ? 'var(--green)' : 'var(--red)';
             const rankBadge = idx === 0 ? '🥇 1' : idx === 1 ? '🥈 2' : idx === 2 ? '🥉 3' : `#${idx + 1}`;
 
             tr.innerHTML = `
@@ -903,7 +907,7 @@
               <td class="highlight">${leader.username}</td>
               <td>${leader.total_trades}</td>
               <td>${leader.win_rate}%</td>
-              <td style="color: ${pnlColor}; font-weight: bold;">${leader.total_pnl >= 0 ? '+' : ''}$${leader.total_pnl.toFixed(2)}</td>
+              <td style="color: ${pnlColor}; font-weight: bold;">${leader.roi >= 0 ? '+' : ''}${leader.roi.toFixed(2)}%</td>
             `;
             tbody.appendChild(tr);
           });
@@ -999,8 +1003,13 @@
     }
 
     async function submitReset() {
+      const balance = parseFloat(document.getElementById('reset-balance').value) || 100000;
       try {
-        const response = await fetch('/api/reset', { method: 'POST' });
+        const response = await fetch('/api/reset', { 
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' }, 
+            body: JSON.stringify({ starting_balance: balance }) 
+        });
         const result = await response.json();
         if(result.success) { showNotification(result.message); closeModal('reset-modal'); fetchAllData(); }
         else { showNotification(result.message, true); }
