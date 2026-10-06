@@ -102,6 +102,9 @@ async def lifespan(app: FastAPI):
             leverage INTEGER, margin_locked REAL, take_profit REAL NULL, stop_loss REAL NULL, order_type TEXT
         )
     """)
+    # Inside your lifespan function, right after the other CREATE TABLE commands:
+    cursor.execute("ALTER TABLE accounts ADD COLUMN IF NOT EXISTS initial_balance REAL DEFAULT 100000.0")
+    conn.commit()
     conn.commit()
     conn.close()
 
@@ -136,6 +139,9 @@ class CancelPendingRequest(BaseModel):
 class AuthRequest(BaseModel):
     username: str
     password: str
+
+class ResetRequest(BaseModel):
+    starting_balance: float = 100000.0
 
 def get_account(request: Request, response: Response) -> str:
     account_id = request.cookies.get("tf_session")
@@ -443,16 +449,16 @@ def cancel_pending(req: CancelPendingRequest, account_id: str = Depends(get_acco
         conn.close()
 
 @app.post("/api/reset")
-def reset_account(account_id: str = Depends(get_account)):
+def reset_account(req: ResetRequest, account_id: str = Depends(get_account)):
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
         cursor.execute("DELETE FROM positions WHERE account_id = %s", (account_id,))
         cursor.execute("DELETE FROM pending_orders WHERE account_id = %s", (account_id,))
         cursor.execute("DELETE FROM trade_history WHERE account_id = %s", (account_id,))
-        cursor.execute("UPDATE accounts SET cash_balance = 100000.0 WHERE id = %s", (account_id,))
+        cursor.execute("UPDATE accounts SET cash_balance = %s, initial_balance = %s WHERE id = %s", (req.starting_balance, req.starting_balance, account_id))
         conn.commit()
-        return {"success": True, "message": "Account fully reset to $100,000."}
+        return {"success": True, "message": f"Account reset to ${req.starting_balance:,.2f}."}
     except Exception:
         conn.rollback()
         return {"success": False, "message": "Failed to reset account."}
@@ -468,16 +474,16 @@ def get_leaderboard(period: str = "month"):
     query = f"""
         SELECT 
             a.username,
-            ROUND(SUM(th.pnl)::numeric, 2) AS total_pnl,
             COUNT(th.id) AS total_trades,
-            ROUND((CAST(SUM(CASE WHEN th.pnl > 0 THEN 1 ELSE 0 END) AS NUMERIC) / COUNT(th.id)) * 100, 1) AS win_rate
+            ROUND((CAST(SUM(CASE WHEN th.pnl > 0 THEN 1 ELSE 0 END) AS NUMERIC) / COUNT(th.id)) * 100, 1) AS win_rate,
+            ROUND((SUM(th.pnl) / COALESCE(a.initial_balance, 100000.0) * 100)::numeric, 2) AS roi
         FROM accounts a
         JOIN trade_history th ON a.id = th.account_id
         WHERE a.username IS NOT NULL 
           AND th.closed_at >= NOW() - INTERVAL '{time_filter}'
-        GROUP BY a.id, a.username
-        HAVING COUNT(th.id) > 10
-        ORDER BY total_pnl DESC
+        GROUP BY a.id, a.username, a.initial_balance
+        HAVING COUNT(th.id) >= 10
+        ORDER BY roi DESC
         LIMIT 25
     """
     cursor.execute(query)
